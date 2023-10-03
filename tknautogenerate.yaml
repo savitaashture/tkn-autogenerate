@@ -1,0 +1,17 @@
+go:
+  tasks:
+    - name: golangci-lint
+      params:
+       - name: package
+         value: .
+      workspace: true
+    - name: go-test
+      workspace: true
+python:
+  tasks:
+    - name: pylint
+      workspace: true
+shell:
+  tasks:
+    - name: shellcheck
+      workspace: true
