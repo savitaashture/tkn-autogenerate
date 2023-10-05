@@ -82,7 +82,12 @@ func (ag *AutoGenerate) GetTasks() []string {
 }
 
 func (ag *AutoGenerate) Output(configs map[string]Config) (string, error) {
-	tmpl, err := template.New("yamltemplates").Parse(string(templateContent))
+	funcMap := template.FuncMap{
+		"add": func(a int, b int) int {
+			return a + b
+		},
+	}
+	tmpl, err := template.New("yamltemplates").Funcs(funcMap).Parse(string(templateContent))
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}

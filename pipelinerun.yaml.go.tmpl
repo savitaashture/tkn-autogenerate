@@ -14,10 +14,12 @@ metadata:
     # Fetch the git-clone task from hub, we are able to reference later on it
     # with taskRef and it will automatically be embedded into our pipeline.
     pipelinesascode.tekton.dev/task: "git-clone"
-    
-    {{- if .Tasks }}
-    pipelinesascode.tekton.dev/task-1: "[{{ range $index, $element := .Tasks }}{{ if $index }}, {{ end }}{{ $element }}{{ end }}]"
-    {{ end }}
+
+    {{- $c := 0 }}
+    {{- range $index, $v := .Configs }}
+    {{- $c = add $c 1 }}
+    pipelinesascode.tekton.dev/task-{{ $c }}: "[{{ range $index, $element := $v.Tasks }}{{ if $index }}, {{ end }}{{ $element.Name }}{{ end }}]"
+    {{- end }}
 
     # Use maven task from hub
     #
