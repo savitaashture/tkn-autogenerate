@@ -12,7 +12,7 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"html/template"
 	"log"
@@ -21,6 +21,7 @@ import (
 
 	_ "embed"
 
+	gh "github.com/google/go-github/v55/github"
 	"gopkg.in/yaml.v2"
 )
 
@@ -110,11 +111,19 @@ func main() {
 		return
 	}
 
-	configs := map[string]Config{}
-	var ghAuto map[string]int
-	if err := json.NewDecoder(os.Stdin).Decode(&ghAuto); err != nil {
+	if len(os.Args) < 2 {
+		fmt.Println("usage: tknautogenerate <owner> <repo>")
+		return
+	}
+	ctx := context.Background()
+	ghC := gh.NewClient(nil)
+	ownerRepo := strings.Split(os.Args[1], "/")
+	ghAuto, _, err := ghC.Repositories.ListLanguages(ctx, ownerRepo[0], ownerRepo[1])
+	if err != nil {
 		log.Fatal(err)
 	}
+
+	configs := map[string]Config{}
 	for k := range ghAuto {
 		kl := strings.ToLower(k)
 		if _, ok := (*ag)[kl]; ok {
