@@ -22,7 +22,7 @@ the detected programming language.
 
 ### Detect Language to Tekton hub mapping 
 
-The file <./tknautogenerate.yaml> specify the mapping between the detected programming language and the task we want to apply into it.
+The file [tknautogenerate.yaml](./tknautogenerate.yaml) specify the mapping between the detected programming language and the task we want to apply into it.
 
 For example:
 
