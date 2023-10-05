@@ -2,8 +2,8 @@ go:
   tasks:
     - name: golangci-lint
       params:
-       - name: package
-         value: .
+      - name: package
+        value: .
       workspace: true
     - name: go-test
       workspace: true
