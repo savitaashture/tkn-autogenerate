@@ -30,17 +30,6 @@ import (
 //go:embed pipelinerun.yaml.go.tmpl
 var templateContent []byte
 
-// type genConfig struct {
-// 	Tasks     []string   `yaml:"tasks"`
-// 	Params    []genParam `yaml:"params"`
-// 	Workspace bool       `yaml:"workspace"`
-// }
-
-// type genParam struct {
-// 	Name  string `yaml:"name"`
-// 	Value string `yaml:"value"`
-// }
-
 type AutoGenerate struct {
 	configs       map[string]Config
 	ghc           *github.Client
@@ -53,10 +42,14 @@ type Params struct {
 	Value string `yaml:"value"`
 }
 
+type Workspace struct {
+	Disabled bool   `yaml:"disabled,omitempty"`
+	Name     string `yaml:"name,omitempty"`
+}
 type Task struct {
-	Name      string   `yaml:"name"`
-	Params    []Params `yaml:"params,omitempty"`
-	Workspace bool     `yaml:"workspace,omitempty"`
+	Name      string    `yaml:"name"`
+	Params    []Params  `yaml:"params,omitempty"`
+	Workspace Workspace `yaml:"workspace,omitempty"`
 }
 
 type Config struct {

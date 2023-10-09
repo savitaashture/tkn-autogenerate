@@ -72,9 +72,9 @@ spec:
       {{- end }}
         taskRef:
           name: {{ $t.Name }}
-      {{- if $t.Workspace }}
+      {{- if eq false $t.Workspace.Disabled }}
         workspaces:
-          - name: source
+          - name: {{- if $t.Workspace.Name }} {{ $t.Workspace.Name }}{{ else }} source{{ end }}
             workspace: source
       {{- end }}
       {{- if $t.Params }}

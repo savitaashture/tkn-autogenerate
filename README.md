@@ -30,7 +30,6 @@ For example:
 python:
   tasks:
     - name: pylint
-      workspace: true
 ```
 
 Will add the task `pylint` to the `PipelineRun` if one of the detected
@@ -46,8 +45,9 @@ python:
   name: cobra
   tasks:
     - name: pylint
-      workspace: true
 ```
+
+### Passing Parameters
 
 You can add `params` to the task to add parameters to be passed to the task
 
@@ -58,6 +58,35 @@ python:
       params:
       - name: path
         value: ./package
+```
+
+### Passing Workspace
+
+A workspace is automatically to the task unless you don't want it added and then you can add the `workspace.disabled = true` to the task
+
+```yaml
+python:
+  tasks:
+    - name: pylint
+      params:
+      - name: path
+        value: ./package
+        workspace:
+          disabled: true
+```
+
+if the task is expecting another name than source (the default name we use) you can specify a name for this:
+
+
+```yaml
+python:
+  tasks:
+    - name: pylint
+      params:
+      - name: path
+        value: ./package
+        workspace:
+          name: repo
 ```
 
 ### Add task matching using patterns to match file repositories
