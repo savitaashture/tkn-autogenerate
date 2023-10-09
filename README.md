@@ -1,6 +1,10 @@
-# TKN autogenerate
+# TKN autogenerate - Generate PipelineRun for [Pipelines-as-Code](https://pipelinesascode.com) automatically.
 
-A simple POC showing how to autogenerate PipelineRun automatically for the programming language of a repository with [Pipelines-as-Code](https://pipelinesascode.com/).
+`tkn-autogenerate` will inspect a repository and try to guess which tasks to add and generate a pipelinerun suitable for [Pipelines-as-Code](https://pipelinesascode.com).
+
+It uses GitHub API to get the languages associated to a repository and some files heuristics pattern for other rules detections.
+
+This tools should be suitable to an automated system or to be plugged with soon to be released Pipelines-as-Code [pluggable tektondir resolver](https://docs.google.com/document/d/1_PfB-OyODXniQXdJ64E-XMiFge3ogPhE6T4cU8MZztA/edit) to get a fully automated system.
 
 ## Installation
 
