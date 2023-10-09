@@ -107,9 +107,7 @@ func (ag *AutoGenerate) GetTasks() ([]string, error) {
 				// TODO: handle error in main
 				return []string{}, fmt.Errorf("Error getting file pattern tasks: %w", err)
 			}
-			for _, task := range fptasks {
-				tasks = append(tasks, task)
-			}
+			tasks = append(tasks, fptasks...)
 			continue
 		}
 		for _, task := range config.Tasks {
