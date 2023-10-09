@@ -1,0 +1,122 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipelinerun-generic
+  annotations:
+    # The event we are targeting as seen from the webhook payload
+    # this can be an array too, i.e: [pull_request, push]
+    pipelinesascode.tekton.dev/on-event: "pull_request"
+
+    # The branch or tag we are targeting (ie: main, refs/tags/*)
+    pipelinesascode.tekton.dev/on-target-branch: "main"
+
+    # Fetch the git-clone task from hub, we are able to reference later on it
+    # with taskRef and it will automatically be embedded into our pipeline.
+    pipelinesascode.tekton.dev/task: "git-clone"
+    pipelinesascode.tekton.dev/task-1: "[buildah]"
+    pipelinesascode.tekton.dev/task-2: "[golangci-lint, golang-test]"
+    pipelinesascode.tekton.dev/task-3: "[shellcheck]"
+
+    # Use maven task from hub
+    #
+    # pipelinesascode.tekton.dev/task-1: "maven"
+
+    # You can add more tasks by increasing the suffix number, you can specify them as array to have multiple of them.
+    # browse the tasks you want to include from hub on https://hub.tekton.dev/
+    #
+    # pipelinesascode.tekton.dev/task-2: "[curl, buildah]"
+
+    # How many runs we want to keep.
+    pipelinesascode.tekton.dev/max-keep-runs: "5"
+spec:
+  params:
+    # The variable with brackets are special to Pipelines as Code
+    # They will automatically be expanded with the events from Github.
+    - name: repo_url
+      value: "{{ repo_url }}"
+    - name: revision
+      value: "{{ revision }}"
+  pipelineSpec:
+    params:
+      - name: repo_url
+      - name: revision
+    workspaces:
+      - name: source
+      - name: basic-auth
+    tasks:
+      - name: git-clone
+        taskRef:
+          name: git-clone
+        workspaces:
+          - name: output
+            workspace: source
+          - name: basic-auth
+            workspace: basic-auth
+        params:
+          - name: url
+            value: $(params.repo_url)
+          - name: revision
+            value: $(params.revision)
+      # Match since a file in this repository match the pattern "(Docker|Container)file$"
+      - name: containerbuild
+        taskRef:
+          name: buildah
+        workspaces:
+          - name: source
+            workspace: source
+        params:
+        - name: IMAGE
+          value: image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(context.pipelineRun.name)
+      # Match since the detected language for this Repository is "go"
+      - name: go-golangci-lint
+        taskRef:
+          name: golangci-lint
+        workspaces:
+          - name: source
+            workspace: source
+        params:
+        - name: package
+          value: .
+        runAfter:
+        - go-golang-test
+      # Match since the detected language for this Repository is "go"
+      - name: go-golang-test
+        taskRef:
+          name: golang-test
+        workspaces:
+          - name: source
+            workspace: source
+        params:
+        - name: package
+          value: .
+        runAfter:
+        - git-clone
+      # Match since the detected language for this Repository is "shell"
+      - name: shell-shellcheck
+        taskRef:
+          name: shellcheck
+        workspaces:
+          - name: shared-workspace
+            workspace: source
+        params:
+        - name: args
+          value: ["."]
+
+        runAfter:
+        - git-clone
+  workspaces:
+  - name: source
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+  # This workspace will inject secret to help the git-clone task to be able to
+  # checkout the private repositories
+  - name: basic-auth
+    secret:
+      secretName: "{{ git_auth_secret }}"
+
