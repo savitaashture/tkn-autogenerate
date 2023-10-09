@@ -1,4 +1,6 @@
-# TKN autogenerate - Generate PipelineRun for [Pipelines-as-Code](https://pipelinesascode.com) automatically.
+# TKN autogenerate - Generate PipelineRun for [Pipelines-as-Code](https://pipelinesascode.com) automagically 🪄
+
+## Description
 
 `tkn-autogenerate` will inspect a repository and try to guess which tasks to add and generate a pipelinerun suitable for [Pipelines-as-Code](https://pipelinesascode.com).
 
@@ -21,6 +23,8 @@ tkn-autogenerate org/repositoryname
 This will query GitHub for the programming language on the REPOSITORY belong to
 ORG and automatically generate a`PipelineRun` with the tasks added according to
 the detected programming language.
+
+You can specify a GitHub token with the flag `--token` (or `GITHUB_TOKEN` environement variable) for private repos or don't get rate limited.
 
 ## Customization
 
