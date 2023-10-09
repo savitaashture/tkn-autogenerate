@@ -14,11 +14,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html/template"
 	"log"
 	"os"
 	"regexp"
 	"strings"
+	"text/template"
 
 	_ "embed"
 
@@ -50,6 +50,7 @@ type Task struct {
 	Name      string    `yaml:"name"`
 	Params    []Params  `yaml:"params,omitempty"`
 	Workspace Workspace `yaml:"workspace,omitempty"`
+	RunAfter  []string  `yaml:"runAfter,omitempty"`
 }
 
 type Config struct {
@@ -68,7 +69,7 @@ func (ag *AutoGenerate) New(filename string) error {
 		return fmt.Errorf("failed to open file %s", filename)
 	}
 	if err := yaml.Unmarshal(content, &ag.configs); err != nil {
-		return fmt.Errorf("failed to parse yaml file %s", filename)
+		return fmt.Errorf("failed to parse yaml file %s: %w", filename, err)
 	}
 	return nil
 }
@@ -146,7 +147,7 @@ func (ag *AutoGenerate) Output(configs map[string]Config) (string, error) {
 			return a + b
 		},
 	}
-	tmpl, err := template.New("yamltemplates").Funcs(funcMap).Parse(string(templateContent))
+	tmpl, err := template.New("pipelineRun").Funcs(funcMap).Parse(string(templateContent))
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
