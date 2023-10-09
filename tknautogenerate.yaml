@@ -10,10 +10,12 @@ go:
       - name: package
         value: .
       runAfter: [git-clone]
+
 python:
   tasks:
     - name: pylint
       runAfter: [git-clone]
+
 shell:
   tasks:
     - name: shellcheck
@@ -24,9 +26,9 @@ shell:
         - name: args
           value: |
            ["."]
-file_match:
+
+containerbuild:
   pattern: "(Docker|Container)file$"
-  name: containerbuild
   tasks:
     - name: buildah
       params:

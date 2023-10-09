@@ -34,6 +34,7 @@ var templateContent []byte
 type CliStruct struct {
 	OwnerRepo string `arg:"" help:"GitHub owner/repo"`
 	Token     string `help:"GitHub token to use" env:"GITHUB_TOKEN"`
+	TargetRef string `help:"The target reference when fetching the files (default: main branch)"`
 }
 
 var CLI CliStruct
@@ -41,6 +42,7 @@ var CLI CliStruct
 type AutoGenerate struct {
 	configs       map[string]Config
 	ghc           *github.Client
+	cli           *CliStruct
 	owner, repo   string
 	files_in_repo []string
 }
@@ -84,11 +86,15 @@ func (ag *AutoGenerate) New(filename string) error {
 
 func (ag *AutoGenerate) GetAllFilesInRepo(ctx context.Context) ([]string, error) {
 	ret := []string{}
-	info, _, err := ag.ghc.Repositories.Get(ctx, ag.owner, ag.repo)
-	if err != nil {
-		return ret, err
+	targetRef := ag.cli.TargetRef
+	if targetRef == "" {
+		info, _, err := ag.ghc.Repositories.Get(ctx, ag.owner, ag.repo)
+		if err != nil {
+			return ret, err
+		}
+		targetRef = info.GetDefaultBranch()
 	}
-	tree, _, err := ag.ghc.Git.GetTree(ctx, ag.owner, ag.repo, info.GetDefaultBranch(), true)
+	tree, _, err := ag.ghc.Git.GetTree(ctx, ag.owner, ag.repo, targetRef, true)
 	if err != nil {
 		return ret, err
 	}
@@ -100,8 +106,8 @@ func (ag *AutoGenerate) GetAllFilesInRepo(ctx context.Context) ([]string, error)
 
 func (ag *AutoGenerate) GetTasks() ([]string, error) {
 	var tasks []string
-	for k, config := range ag.configs {
-		if k == "file_match" {
+	for _, config := range ag.configs {
+		if config.Pattern != "" {
 			fptasks, err := ag.GetFilePatternTasks(context.Background(), config)
 			if err != nil {
 				// TODO: handle error in main
@@ -175,7 +181,6 @@ func (ag *AutoGenerate) Output(configs map[string]Config) (string, error) {
 
 func detect(cli *CliStruct) (string, error) {
 	ownerRepo := strings.Split(cli.OwnerRepo, "/")
-
 	ctx := context.Background()
 	ghC := gh.NewClient(nil)
 	if cli.Token != "" {
@@ -186,7 +191,7 @@ func detect(cli *CliStruct) (string, error) {
 		return "", err
 	}
 
-	ag := &AutoGenerate{ghc: ghC, owner: ownerRepo[0], repo: ownerRepo[1]}
+	ag := &AutoGenerate{ghc: ghC, owner: ownerRepo[0], repo: ownerRepo[1], cli: cli}
 	if err := ag.New("tknautogenerate.yaml"); err != nil {
 		return "", err
 	}
@@ -202,20 +207,19 @@ func detect(cli *CliStruct) (string, error) {
 			configs[kn] = (ag.configs)[kl]
 		}
 	}
-	for _, config := range ag.configs {
+	for k, config := range ag.configs {
 		if config.Pattern == "" {
 			continue
 		}
-
 		fptasks, err := ag.GetFilePatternTasks(ctx, config)
 		if err != nil {
 			return "", fmt.Errorf("Error getting file pattern tasks: %w", err)
 		}
-		if config.Name == "" {
-			return "", fmt.Errorf("file_match config on pattern: %s should have a Name", config.Pattern)
+		if config.Name != "" {
+			k = config.Name
 		}
 		if len(fptasks) != 0 {
-			configs[config.Name] = config
+			configs[k] = config
 		}
 	}
 

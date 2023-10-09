@@ -123,9 +123,8 @@ python:
 You can also add tasks according to file patterns, for example:
 
 ```yaml
-file_match:
+containerbuild:
   pattern: "(Docker|Container)file$"
-  name: containerbuild
   tasks:
     - name: buildah
       workspace: true
@@ -134,9 +133,10 @@ file_match:
           value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(context.pipelineRun.name)"
 ```
 
-A file match configuration need to start with the `file_match` keyword and have
-a `name` set. The pattern will match the files you have in your repository, it
-will be queried on the API using on default branch of the repository.
+If you have a configuration containing the `pattern` keyword it will try to
+match it against all the files in the repository, it will be queried using the API
+on the `default_branch` of the repository unless you pass the flag
+`--target-ref` to another reference or SHA.
 
 ### PipelineRun template
 
