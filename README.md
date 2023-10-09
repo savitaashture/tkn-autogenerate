@@ -2,11 +2,16 @@
 
 ## Description
 
-`tkn-autogenerate` will inspect a repository and try to guess which tasks to add and generate a pipelinerun suitable for [Pipelines-as-Code](https://pipelinesascode.com).
+`tkn-autogenerate` will inspect a repository and try to guess which tasks to
+add and generate a pipelinerun suitable for
+[Pipelines-as-Code](https://pipelinesascode.com).
 
-It uses GitHub API to get the languages associated to a repository and some files heuristics pattern for other rules detections.
+It uses GitHub API to get the languages associated to a repository and some
+files heuristics pattern for other rules detections.
 
-This tools should be suitable to an automated system or to be plugged with soon to be released Pipelines-as-Code [pluggable tektondir resolver](https://docs.google.com/document/d/1_PfB-OyODXniQXdJ64E-XMiFge3ogPhE6T4cU8MZztA/edit) to get a fully automated system.
+This tools should be suitable to an automated system or to be plugged with soon
+to be released Pipelines-as-Code [pluggable tekton directory resolver](https://docs.google.com/document/d/1_PfB-OyODXniQXdJ64E-XMiFge3ogPhE6T4cU8MZztA/edit)
+to get a fully automated system.
 
 ## Installation
 
@@ -24,13 +29,16 @@ This will query GitHub for the programming language on the REPOSITORY belong to
 ORG and automatically generate a`PipelineRun` with the tasks added according to
 the detected programming language.
 
-You can specify a GitHub token with the flag `--token` (or `GITHUB_TOKEN` environement variable) for private repos or don't get rate limited.
+You can specify a GitHub token with the flag `--token` (or `GITHUB_TOKEN`
+environment variable) for private repos or don't get rate limited.
 
 ## Customization
 
 ### Detect Language to Tekton hub mapping
 
-The file [tknautogenerate.yaml](./tknautogenerate.yaml) specify the mapping between the detected programming language and the task we want to apply into it.
+The file [tknautogenerate.yaml](./tknautogenerate.yaml) specify the mapping
+between the detected programming language and the task we want to apply into
+it.
 
 For example:
 
@@ -64,37 +72,50 @@ python:
   tasks:
     - name: pylint
       params:
-      - name: path
-        value: ./package
+        - name: path
+          value: ./package
 ```
 
 ### Passing Workspace
 
-A workspace is automatically to the task unless you don't want it added and then you can add the `workspace.disabled = true` to the task
+A workspace is automatically to the task unless you don't want it added and
+then you can add the `workspace.disabled = true` to the task
 
 ```yaml
 python:
   tasks:
     - name: pylint
       params:
-      - name: path
-        value: ./package
-        workspace:
-          disabled: true
+        - name: path
+          value: ./package
+          workspace:
+            disabled: true
 ```
 
-if the task is expecting another name than source (the default name we use) you can specify a name for this:
-
+If the task is expecting another name than source (the default name we use) you
+can specify a name for this:
 
 ```yaml
 python:
   tasks:
     - name: pylint
       params:
-      - name: path
-        value: ./package
-        workspace:
-          name: repo
+        - name: path
+          value: ./package
+          workspace:
+            name: repo
+```
+
+### Task dependencies
+
+You can add a optional `runAfter` parameter to the task to chain dependencies
+between tasks which will be passed to the generated PipelineRun.
+
+```yaml
+python:
+  tasks:
+    - name: pylint
+      runAfter: [fetch-repository]
 ```
 
 ### Add task matching using patterns to match file repositories
