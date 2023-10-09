@@ -22,6 +22,7 @@ import (
 
 	_ "embed"
 
+	"github.com/alecthomas/kong"
 	"github.com/google/go-github/v55/github"
 	gh "github.com/google/go-github/v55/github"
 	"gopkg.in/yaml.v2"
@@ -29,6 +30,13 @@ import (
 
 //go:embed pipelinerun.yaml.go.tmpl
 var templateContent []byte
+
+type CliStruct struct {
+	OwnerRepo string `arg:"" help:"GitHub owner/repo"`
+	Token     string `help:"GitHub token to use" env:"GITHUB_TOKEN"`
+}
+
+var CLI CliStruct
 
 type AutoGenerate struct {
 	configs       map[string]Config
@@ -167,9 +175,14 @@ func (ag *AutoGenerate) Output(configs map[string]Config) (string, error) {
 	return outputBuffer.String(), nil
 }
 
-func detect(ownerRepo []string) (string, error) {
+func detect(cli *CliStruct) (string, error) {
+	ownerRepo := strings.Split(cli.OwnerRepo, "/")
+
 	ctx := context.Background()
 	ghC := gh.NewClient(nil)
+	if cli.Token != "" {
+		ghC = ghC.WithAuthToken(cli.Token)
+	}
 	detectLanguages, _, err := ghC.Repositories.ListLanguages(ctx, ownerRepo[0], ownerRepo[1])
 	if err != nil {
 		return "", err
@@ -212,19 +225,21 @@ func detect(ownerRepo []string) (string, error) {
 }
 
 func main() {
-	// parse yaml file and generate configs
 	_, err := os.Stat("tknautogenerate.yaml")
 	if err != nil {
 		fmt.Println("tknautogenerate.yaml not found")
 		return
 	}
 
-	if len(os.Args) < 2 {
-		fmt.Println("usage: tknautogenerate <owner> <repo>")
-		return
-	}
-	ownerRepo := strings.Split(os.Args[1], "/")
-	output, err := detect(ownerRepo)
+	kong.Parse(&CLI, kong.Name("tkn-autogenerate"),
+		kong.Description("Auto generation of pipelinerun on detection"),
+		kong.UsageOnError(),
+		kong.ConfigureHelp(kong.HelpOptions{
+			Compact: true,
+			Summary: false,
+		}))
+
+	output, err := detect(&CLI)
 	if err != nil {
 		log.Fatal(err)
 	}

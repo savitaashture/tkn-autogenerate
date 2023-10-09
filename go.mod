@@ -3,6 +3,7 @@ module github.com/chmouel/autogenerate
 go 1.20
 
 require (
+	github.com/alecthomas/kong v0.8.0
 	github.com/google/go-github/v55 v55.0.0
 	gopkg.in/yaml.v2 v2.4.0
 )
