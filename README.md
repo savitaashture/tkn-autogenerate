@@ -38,7 +38,29 @@ programming language is `python`. It will add the [Pipelines as Code remote task
 annotation](https://pipelinesascode.com/docs/guide/resolver/#tekton-hubhttpshubtektondev)
 to have the Pipeline as Code added to the PipelineRun.
 
-### Add task matching using  patterns to match file repositories
+You can add a `name` parameter to the task to customize the name of the task
+instead of using the detected language.
+
+```yaml
+python:
+  name: cobra
+  tasks:
+    - name: pylint
+      workspace: true
+```
+
+You can add `params` to the task to add parameters to be passed to the task
+
+```yaml
+python:
+  tasks:
+    - name: pylint
+      params:
+      - name: path
+        value: ./package
+```
+
+### Add task matching using patterns to match file repositories
 
 You can also add tasks according to file patterns, for example:
 
