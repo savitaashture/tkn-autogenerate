@@ -5,8 +5,11 @@ go:
       - name: package
         value: .
       workspace: true
-    - name: go-test
+    - name: golang-test
       workspace: true
+      params:
+      - name: package
+        value: .
 python:
   tasks:
     - name: pylint
@@ -15,3 +18,13 @@ shell:
   tasks:
     - name: shellcheck
       workspace: true
+
+file_match:
+  pattern: "(Docker|Container)file$"
+  name: containerbuild
+  tasks:
+    - name: buildah
+      workspace: true
+      params:
+      - name: IMAGE
+        value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(context.pipelineRun.name)"

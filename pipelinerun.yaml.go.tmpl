@@ -51,7 +51,6 @@ spec:
       - name: fetch-repository
         taskRef:
           name: git-clone
-          kind: ClusterTask
         workspaces:
           - name: output
             workspace: source
@@ -64,7 +63,13 @@ spec:
             value: $(params.revision)
       {{- range $c, $v := .Configs }}
       {{- range $t := $v.Tasks }}
+      {{- if $v.Pattern }}
+      # Match since a file in this repository match the pattern "{{ $v.Pattern }}"
+      - name: {{ $v.Name }}
+      {{- else }}
+      # Match since the detected language for this Repository is "{{ $c }}"
       - name: {{ $c }}-{{ $t.Name }}
+      {{- end }}
         taskRef:
           name: {{ $t.Name }}
       {{- if $t.Workspace }}
@@ -75,8 +80,8 @@ spec:
       {{- if $t.Params }}
       {{- range $p := $t.Params }}
         params:
-          - name: {{ $p.Name }}
-            value: {{ $p.Value }}
+        - name: {{ $p.Name }}
+          value: {{ $p.Value }}
       {{- end }}
       {{- end }}
       {{- end }}

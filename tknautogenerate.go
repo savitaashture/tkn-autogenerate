@@ -17,10 +17,12 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 
 	_ "embed"
 
+	"github.com/google/go-github/v55/github"
 	gh "github.com/google/go-github/v55/github"
 	"gopkg.in/yaml.v2"
 )
@@ -39,7 +41,12 @@ var templateContent []byte
 // 	Value string `yaml:"value"`
 // }
 
-type AutoGenerate map[string]Config
+type AutoGenerate struct {
+	configs       map[string]Config
+	ghc           *github.Client
+	owner, repo   string
+	files_in_repo []string
+}
 
 type Params struct {
 	Name  string `yaml:"name"`
@@ -53,7 +60,9 @@ type Task struct {
 }
 
 type Config struct {
-	Tasks []Task `yaml:"tasks"`
+	Name    string `yaml:"name"`
+	Tasks   []Task `yaml:"tasks"`
+	Pattern string `yaml:"pattern,omitempty"`
 }
 
 func (ag *AutoGenerate) New(filename string) error {
@@ -65,20 +74,77 @@ func (ag *AutoGenerate) New(filename string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open file %s", filename)
 	}
-	if err := yaml.Unmarshal(content, &ag); err != nil {
+	if err := yaml.Unmarshal(content, &ag.configs); err != nil {
 		return fmt.Errorf("failed to parse yaml file %s", filename)
 	}
 	return nil
 }
 
-func (ag *AutoGenerate) GetTasks() []string {
+func (ag *AutoGenerate) GetAllFilesInRepo(ctx context.Context) ([]string, error) {
+	ret := []string{}
+	info, _, err := ag.ghc.Repositories.Get(ctx, ag.owner, ag.repo)
+	if err != nil {
+		return ret, err
+	}
+	tree, _, err := ag.ghc.Git.GetTree(ctx, ag.owner, ag.repo, info.GetDefaultBranch(), true)
+	if err != nil {
+		return ret, err
+	}
+	for _, entry := range tree.Entries {
+		ret = append(ret, entry.GetPath())
+	}
+	return ret, nil
+}
+
+func (ag *AutoGenerate) GetTasks() ([]string, error) {
 	var tasks []string
-	for _, config := range *ag {
+	for k, config := range ag.configs {
+		if k == "file_match" {
+			fptasks, err := ag.GetFilePatternTasks(context.Background(), config)
+			if err != nil {
+				// TODO: handle error in main
+				return []string{}, fmt.Errorf("Error getting file pattern tasks: %w", err)
+			}
+			for _, task := range fptasks {
+				tasks = append(tasks, task)
+			}
+			continue
+		}
 		for _, task := range config.Tasks {
 			tasks = append(tasks, task.Name)
 		}
 	}
-	return tasks
+	return tasks, nil
+}
+
+func (ag *AutoGenerate) GetFilePatternTasks(ctx context.Context, config Config) ([]string, error) {
+	var ret []string
+	if ag.files_in_repo == nil {
+		var err error
+		if ag.files_in_repo, err = ag.GetAllFilesInRepo(ctx); err != nil {
+			return ret, fmt.Errorf("Error getting all files in repo: %w", err)
+		}
+	}
+
+	reg, err := regexp.Compile(config.Pattern)
+	if err != nil {
+		return ret, err
+	}
+	matched := false
+	for _, file := range ag.files_in_repo {
+		if reg.MatchString(file) {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		return ret, nil
+	}
+
+	for _, task := range config.Tasks {
+		ret = append(ret, task.Name)
+	}
+	return ret, nil
 }
 
 func (ag *AutoGenerate) Output(configs map[string]Config) (string, error) {
@@ -92,15 +158,63 @@ func (ag *AutoGenerate) Output(configs map[string]Config) (string, error) {
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
 
+	all_tasks, err := ag.GetTasks()
+	if err != nil {
+		return "", fmt.Errorf("failed to get tasks: %w", err)
+	}
 	var outputBuffer bytes.Buffer
 	data := map[string]interface{}{
 		"Configs": configs,
-		"Tasks":   ag.GetTasks(),
+		"Tasks":   all_tasks,
 	}
 	if err := tmpl.Execute(&outputBuffer, data); err != nil {
 		return "", fmt.Errorf("failed to execute template: %w", err)
 	}
 	return outputBuffer.String(), nil
+}
+
+func detect(ownerRepo []string) (string, error) {
+	ctx := context.Background()
+	ghC := gh.NewClient(nil)
+	detectLanguages, _, err := ghC.Repositories.ListLanguages(ctx, ownerRepo[0], ownerRepo[1])
+	if err != nil {
+		return "", err
+	}
+
+	ag := &AutoGenerate{ghc: ghC, owner: ownerRepo[0], repo: ownerRepo[1]}
+	if err := ag.New("tknautogenerate.yaml"); err != nil {
+		return "", err
+	}
+
+	configs := map[string]Config{}
+	for k := range detectLanguages {
+		kl := strings.ToLower(k)
+		if c, ok := (ag.configs)[kl]; ok {
+			kn := kl
+			if c.Name != "" {
+				kn = c.Name
+			}
+			configs[kn] = (ag.configs)[kl]
+		}
+	}
+	for _, config := range ag.configs {
+		if config.Pattern == "" {
+			continue
+		}
+
+		fptasks, err := ag.GetFilePatternTasks(ctx, config)
+		if err != nil {
+			return "", fmt.Errorf("Error getting file pattern tasks: %w", err)
+		}
+		if config.Name == "" {
+			return "", fmt.Errorf("file_match config on pattern: %s should have a Name", config.Pattern)
+		}
+		if len(fptasks) != 0 {
+			configs[config.Name] = config
+		}
+	}
+
+	return ag.Output(configs)
 }
 
 func main() {
@@ -110,35 +224,15 @@ func main() {
 		fmt.Println("tknautogenerate.yaml not found")
 		return
 	}
-	ag := &AutoGenerate{}
-	if err := ag.New("tknautogenerate.yaml"); err != nil {
-		log.Fatal(err)
-		return
-	}
 
 	if len(os.Args) < 2 {
 		fmt.Println("usage: tknautogenerate <owner> <repo>")
 		return
 	}
-	ctx := context.Background()
-	ghC := gh.NewClient(nil)
 	ownerRepo := strings.Split(os.Args[1], "/")
-	ghAuto, _, err := ghC.Repositories.ListLanguages(ctx, ownerRepo[0], ownerRepo[1])
+	output, err := detect(ownerRepo)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	configs := map[string]Config{}
-	for k := range ghAuto {
-		kl := strings.ToLower(k)
-		if _, ok := (*ag)[kl]; ok {
-			configs[kl] = (*ag)[kl]
-		}
-	}
-	output, err := ag.Output(configs)
-	if err != nil {
-		log.Fatal(err)
-		return
 	}
 	fmt.Println(output)
 }
