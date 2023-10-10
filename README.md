@@ -1,4 +1,4 @@
-# TKN autogenerate - Generate PipelineRun for [Pipelines-as-Code](https://pipelinesascode.com) automagically 🪄
+# tkn autogenerate - Generate PipelineRun for [Pipelines-as-Code](https://pipelinesascode.com) automagically 🪄
 
 ## Description
 
