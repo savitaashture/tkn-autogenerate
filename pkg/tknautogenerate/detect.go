@@ -10,6 +10,9 @@ import (
 
 func Detect(cli *CliStruct) (string, error) {
 	ownerRepo := strings.Split(cli.OwnerRepo, "/")
+	if len(ownerRepo) != 2 {
+		return "", fmt.Errorf("owner/repo must be specified")
+	}
 	ctx := context.Background()
 	ghC := gh.NewClient(nil)
 	if cli.Token != "" {

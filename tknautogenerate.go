@@ -12,7 +12,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	_ "embed"
 
@@ -33,7 +32,7 @@ func main() {
 
 	output, err := ag.Detect(&CLI)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error: %v", err)
 	}
 	fmt.Println(output)
 }
