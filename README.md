@@ -155,9 +155,9 @@ java:
 
 will use the file in
 [./pkg/tknautogenerate/templates/languages/java.yaml.go.tmpl](./pkg/tknautogenerate/templates/languages/java.yaml.go.tmpl)
-to generate the pipelinerun.
-
-If multiple language have multiple pipelinerun then the first one will win.
+to generate the pipelinerun unless you define the flag on the CLI argument
+`--templates-language-dir=mytemplates/` and then it will be expanded to
+`./mytemplates/$LANGUAGE.yaml.go.tmpl` (where language is the detected language).
 
 You can combine this with file pattern too:
 
@@ -177,6 +177,8 @@ java:
     tasks:
     - name: sbom
 ```
+
+If multiple language have multiple pipelinerun then the first one will win.
 
 no other language detection will be passed to the templates, it's really a
 static pipelinerun generated out of file pattern or programming language
