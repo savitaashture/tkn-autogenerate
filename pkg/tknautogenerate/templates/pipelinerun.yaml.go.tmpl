@@ -63,7 +63,11 @@ spec:
             value: $(params.revision)
       {{- range $c, $v := .Configs }}
       {{- range $t := $v.Tasks }}
+      {{- if $v.Pattern }}
+      # Match since files pattern: "{{ $v.Pattern }}" has matched
+      {{- else }}
       # Match since the detected language for this Repository is "{{ $c }}"
+      {{- end }}
       - name: {{ $c }}-{{ $t.Name }}
         taskRef:
           name: {{ $t.Name }}

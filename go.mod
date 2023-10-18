@@ -1,4 +1,4 @@
-module github.com/chmouel/autogenerate
+module github.com/chmouel/tknautogenerate
 
 go 1.20
 
