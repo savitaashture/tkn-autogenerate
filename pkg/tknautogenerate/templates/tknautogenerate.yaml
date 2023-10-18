@@ -34,3 +34,9 @@ containerbuild:
       params:
       - name: IMAGE
         value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(context.pipelineRun.name)"
+
+# java:
+#     pipelinerun: "java"
+# java:
+#     pattern: "^pom.xml$"
+#     pipelinerun: "java"

@@ -12,6 +12,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	_ "embed"
 
@@ -23,7 +24,7 @@ var CLI ag.CliStruct
 
 func main() {
 	kong.Parse(&CLI, kong.Name("tkn-autogenerate"),
-		kong.Description("Auto generation of pipelinerun on detection"),
+		kong.Description("Auto generation of pipelinerun on language detection"),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: true,
@@ -34,5 +35,5 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error: %v", err)
 	}
-	fmt.Println(output)
+	fmt.Println(strings.TrimSpace(output))
 }

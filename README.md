@@ -36,7 +36,7 @@ environment variable) for private repos or don't get rate limited.
 
 ### Detect Language to Tekton hub mapping
 
-The file [tknautogenerate.yaml](./tknautogenerate.yaml) specify the mapping
+The file [tknautogenerate.yaml](./pkg/tknautogenerate/templates/tknautogenerate.yaml) specify the mapping
 between the detected programming language and the task we want to apply into
 it.
 
@@ -138,11 +138,51 @@ match it against all the files in the repository, it will be queried using the A
 on the `default_branch` of the repository unless you pass the flag
 `--target-ref` to another reference or SHA.
 
-### PipelineRun template
+### PipelineRun default template
 
-The file [pipelinerun.yaml.go.tmpl](./pipelinerun.yaml.go.tmpl) is the actual
+The file [pipelinerun.yaml.go.tmpl](./pkg/tknautogenerate/templates/pipelinerun.yaml.go.tmpl) is the actual
 PipelineRun which can be customized according to the [go templating
 system](https://pkg.go.dev/text/template).
+
+### Using a specific PipelineRun for a detected language or file pattern
+
+You can specify a specific PipelineRun for a detected language or file pattern, for example:
+
+```yaml
+java:
+    pipelinerun: "java"
+```
+
+will use the file in
+[./pkg/tknautogenerate/templates/languages/java.yaml.go.tmpl](./pkg/tknautogenerate/templates/languages/java.yaml.go.tmpl)
+to generate the pipelinerun.
+
+If multiple language have multiple pipelinerun then the first one will win.
+
+You can combine this with file pattern too:
+
+```yaml
+java:
+    pattern: "^pom.xml$"
+    pipelinerun: "java"
+```
+
+and you can add extra tasks to add if you want to (altho it probably better to
+have this in your specific template) directly:
+
+```yaml
+java:
+    pattern: "^pom.xml$"
+    pipelinerun: "java"
+    tasks:
+    - name: sbom
+```
+
+no other language detection will be passed to the templates, it's really a
+static pipelinerun generated out of file pattern or programming language
+detection.
+
+(TODO: make the language that has most amount of percentage in a repo wins)
 
 ## Copyright
 

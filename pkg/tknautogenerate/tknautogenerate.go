@@ -3,6 +3,7 @@ package tknautogenerate
 import (
 	"bytes"
 	"context"
+	"embed"
 	_ "embed"
 	"fmt"
 	"os"
@@ -17,7 +18,10 @@ import (
 var tknAutogenerateYaml []byte
 
 //go:embed templates/pipelinerun.yaml.go.tmpl
-var templateContent []byte
+var defaultPipelineRun []byte
+
+//go:embed templates/languages/*.tmpl
+var defaultLanguagesPipelineRuns embed.FS
 
 type Params struct {
 	Name  string `yaml:"name"`
@@ -36,16 +40,19 @@ type Task struct {
 }
 
 type Config struct {
-	Name    string `yaml:"name"`
-	Tasks   []Task `yaml:"tasks"`
-	Pattern string `yaml:"pattern,omitempty"`
+	Name        string `yaml:"name"`
+	Tasks       []Task `yaml:"tasks"`
+	Pattern     string `yaml:"pattern,omitempty"`
+	PipelineRun string `yaml:"pipelinerun,omitempty"`
 }
 
 type CliStruct struct {
-	OwnerRepo        string `arg:"" help:"GitHub owner/repo"`
-	Token            string `help:"GitHub token to use" env:"GITHUB_TOKEN"`
-	TargetRef        string `help:"The target reference when fetching the files (default: main branch)"`
-	autoGenerateYaml string `help:"path to the autogenerate.yaml"`
+	OwnerRepo            string `arg:"" help:"GitHub owner/repo"`
+	Token                string `help:"GitHub token to use" env:"GITHUB_TOKEN"`
+	TargetRef            string `help:"The target reference when fetching the files (default: main branch)"`
+	AutoGenerateYaml     string `help:"Path to the autogenerate.yaml"`
+	PipelineRunYaml      string `help:"path to the default pipelinerun template"`
+	TemplatesLanguageDir string `help:"path to the per language templates directory"`
 }
 
 type AutoGenerate struct {
@@ -98,12 +105,14 @@ func (ag *AutoGenerate) GetTasks() ([]string, error) {
 	var tasks []string
 	for _, config := range ag.configs {
 		if config.Pattern != "" {
-			fptasks, err := ag.GetFilePatternTasks(context.Background(), config)
+			detected, fptasks, err := ag.GetFilePatternTasks(context.Background(), config)
 			if err != nil {
 				// TODO: handle error in main
 				return []string{}, fmt.Errorf("Error getting file pattern tasks: %w", err)
 			}
-			tasks = append(tasks, fptasks...)
+			if detected {
+				tasks = append(tasks, fptasks...)
+			}
 			continue
 		}
 		for _, task := range config.Tasks {
@@ -113,18 +122,18 @@ func (ag *AutoGenerate) GetTasks() ([]string, error) {
 	return tasks, nil
 }
 
-func (ag *AutoGenerate) GetFilePatternTasks(ctx context.Context, config Config) ([]string, error) {
+func (ag *AutoGenerate) GetFilePatternTasks(ctx context.Context, config Config) (bool, []string, error) {
 	var ret []string
 	if ag.files_in_repo == nil {
 		var err error
 		if ag.files_in_repo, err = ag.GetAllFilesInRepo(ctx); err != nil {
-			return ret, fmt.Errorf("Error getting all files in repo: %w", err)
+			return false, ret, fmt.Errorf("Error getting all files in repo: %w", err)
 		}
 	}
 
 	reg, err := regexp.Compile(config.Pattern)
 	if err != nil {
-		return ret, err
+		return false, ret, err
 	}
 	matched := false
 	for _, file := range ag.files_in_repo {
@@ -134,22 +143,21 @@ func (ag *AutoGenerate) GetFilePatternTasks(ctx context.Context, config Config) 
 		}
 	}
 	if !matched {
-		return ret, nil
+		return false, ret, nil
 	}
-
 	for _, task := range config.Tasks {
 		ret = append(ret, task.Name)
 	}
-	return ret, nil
+	return true, ret, nil
 }
 
-func (ag *AutoGenerate) Output(configs map[string]Config) (string, error) {
+func (ag *AutoGenerate) Output(configs map[string]Config, content string) (string, error) {
 	funcMap := template.FuncMap{
 		"add": func(a int, b int) int {
 			return a + b
 		},
 	}
-	tmpl, err := template.New("pipelineRun").Funcs(funcMap).Parse(string(templateContent))
+	tmpl, err := template.New("pipelineRun").Funcs(funcMap).Parse(content)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
