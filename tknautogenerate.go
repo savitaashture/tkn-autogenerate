@@ -31,10 +31,14 @@ import (
 //go:embed pipelinerun.yaml.go.tmpl
 var templateContent []byte
 
+//go:embed tknautogenerate.yaml
+var tknAutogenerateYaml []byte
+
 type CliStruct struct {
-	OwnerRepo string `arg:"" help:"GitHub owner/repo"`
-	Token     string `help:"GitHub token to use" env:"GITHUB_TOKEN"`
-	TargetRef string `help:"The target reference when fetching the files (default: main branch)"`
+	OwnerRepo        string `arg:"" help:"GitHub owner/repo"`
+	Token            string `help:"GitHub token to use" env:"GITHUB_TOKEN"`
+	TargetRef        string `help:"The target reference when fetching the files (default: main branch)"`
+	autoGenerateYaml string `help:"path to the autogenerate.yaml"`
 }
 
 var CLI CliStruct
@@ -70,13 +74,16 @@ type Config struct {
 }
 
 func (ag *AutoGenerate) New(filename string) error {
-	if _, err := os.Stat(filename); err != nil {
-		return fmt.Errorf("file %s not found", filename)
-	}
-	// open file
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		return fmt.Errorf("failed to open file %s", filename)
+	content := tknAutogenerateYaml
+	if filename != "" {
+		var err error
+		if _, err := os.Stat(filename); err != nil {
+			return fmt.Errorf("file %s not found", filename)
+		}
+		// open file
+		if content, err = os.ReadFile(filename); err != nil {
+			return fmt.Errorf("failed to open file %s", filename)
+		}
 	}
 	if err := yaml.Unmarshal(content, &ag.configs); err != nil {
 		return fmt.Errorf("failed to parse yaml file %s: %w", filename, err)
@@ -192,7 +199,7 @@ func detect(cli *CliStruct) (string, error) {
 	}
 
 	ag := &AutoGenerate{ghc: ghC, owner: ownerRepo[0], repo: ownerRepo[1], cli: cli}
-	if err := ag.New("tknautogenerate.yaml"); err != nil {
+	if err := ag.New(cli.autoGenerateYaml); err != nil {
 		return "", err
 	}
 
