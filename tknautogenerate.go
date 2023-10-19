@@ -23,12 +23,13 @@ import (
 var CLI ag.CliStruct
 
 func main() {
-	kong.Parse(&CLI, kong.Name("tkn-autogenerate"),
-		kong.Description("Auto generation of pipelinerun on language detection"),
+	kong.Parse(&CLI,
+		kong.Name("tkn-autogenerate"),
+		kong.Description("🧲 Auto generation of pipelinerun on language detection and file patterns"),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: true,
-			Summary: false,
+			Summary: true,
 		}))
 
 	output, err := ag.Detect(&CLI)

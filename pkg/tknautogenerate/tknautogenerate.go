@@ -47,12 +47,12 @@ type Config struct {
 }
 
 type CliStruct struct {
-	OwnerRepo            string `arg:"" help:"GitHub owner/repo"`
-	Token                string `help:"GitHub token to use" env:"GITHUB_TOKEN"`
-	TargetRef            string `help:"The target reference when fetching the files (default: main branch)"`
-	AutoGenerateYaml     string `help:"Path to the autogenerate.yaml"`
-	PipelineRunYaml      string `help:"path to the default pipelinerun template"`
-	TemplatesLanguageDir string `help:"path to the per language templates directory"`
+	OwnerRepo            string `arg:"" help:"GitHub owner/repo" placeholder:"OWNER/REPO"`
+	Token                string `help:"GitHub token to use" env:"GITHUB_TOKEN" placeholder:"TOKEN" short:"t"`
+	TargetRef            string `help:"The target reference when fetching the files (default: main branch)" placeholder:"REF"`
+	AutoGenerateYaml     string `help:"Path to the autogenerate.yaml file" placeholder:"FILE" type:"existingfile"`
+	PipelineRunYaml      string `help:"path to the default pipelinerun template" placeholder:"FILE" type:"existingfile"`
+	TemplatesLanguageDir string `help:"path to the per language templates directory" placeholder:"DIR" type:"existingdir"`
 }
 
 type AutoGenerate struct {
