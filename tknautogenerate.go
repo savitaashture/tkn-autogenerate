@@ -11,13 +11,12 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"strings"
 
-	_ "embed"
-
 	"github.com/alecthomas/kong"
-	ag "github.com/chmouel/tknautogenerate/pkg/tknautogenerate"
+	ag "github.com/chmouel/tkn-autogenerate/pkg/tknautogenerate"
 )
 
 var CLI ag.CliStruct
